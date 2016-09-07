@@ -1,0 +1,367 @@
+(custom-set-variables
+  ;; custom-set-variables was added by Custom -- don't edit or cut/paste it!
+  ;; Your init file should contain only one such instance.
+ '(auto-compression-mode t nil (jka-compr))
+ '(case-fold-search t)
+ '(current-language-environment "UTF-8")
+ '(default-input-method "rfc1345")
+ '(global-font-lock-mode t nil (font-lock))
+ '(grep-command "grep -in -e ")
+ '(show-paren-mode t nil (paren))
+ '(transient-mark-mode t)
+ '(uniquify-buffer-name-style nil nil (uniquify)))
+(custom-set-faces
+  ;; custom-set-faces was added by Custom -- don't edit or cut/paste it!
+  ;; Your init file should contain only one such instance.
+ )
+
+; javascript
+; http://steve-yegge.blogspot.com/2008/03/js2-mode-new-javascript-mode-for-emacs.html
+; http://code.google.com/p/js2-mode/
+;
+; To install js2-mode:
+;
+;; download the latest source distribution file, js2-XXXXXXXX.el
+;; put it in your Emacs load-path somewhere as js2.el
+;; in Emacs, M-x byte-compile-file RE js2.el RET
+;; add these lines to your .emacs file:
+;; (autoload 'js2-mode "js2" nil t)
+;; (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
+;; It will refuse to run unless you have byte-compiled it. You must byte-compile it with your version of Emacs because different versions of Emacs have different byte-compiled formats.
+;
+(add-to-list 'load-path "~/configFiles/")
+(autoload 'js2-mode "js2" nil t)
+(add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
+
+
+
+;(setq load-path (cons "~/emacsScripts" load-path))
+;(load-file "~/configs/emacs/color-theme.el")
+; old?
+;(load-file "~/configFiles/color-theme-6.6.0/color-theme.el")
+;(Require 'color-theme)
+;(color-theme-clarity)
+
+;(add-to-list 'load-path "~/configFiles/color-theme-6.6.0/")
+;(require 'color-theme)
+;(eval-after-load "color-theme"
+;  '(progn
+;     (color-theme-initialize)
+;     (color-theme-clarity)))
+
+
+(defun after-make-frame-function (frame)
+  "Do Setup needed to make frame look good"
+  (interactive)
+  (select-frame frame)
+  (color-theme-clarity))
+
+(setq after-make-frame-functions 'after-make-frame-function)
+
+;;make a bar cursor
+(setq initial-frame-alist
+      (cons '(cursor-type . bar)
+            (copy-alist initial-frame-alist)
+            )
+)
+
+(setq default-frame-alist
+      (cons '(cursor-type . bar)
+            (copy-alist default-frame-alist)
+            )
+)
+
+;;don't show the toolbar
+(tool-bar-mode -1)
+
+;; Visual feedback on selections
+(setq-default transient-mark-mode t)
+
+;; Always end a file with a newline
+(setq require-final-newline t)
+
+;; Stop at the end of the file, not just add lines
+(setq next-line-add-newlines nil)
+
+;; Enable wheelmouse support by default
+(cond (window-system
+              (mwheel-install)
+              ))
+
+(setq default-tab-width 4)
+;(setq-default indent-tabs-mode nil)
+
+(setq c-brace-offset 0)
+
+;-------------------------------------------------------------------------
+; Find matching parenthesis for "()", "[]" and "{}".
+; Bind <Ctrl-Cpg> to - go to the matching parenthesis.
+; Bind <Ctrl-Cps> to - a brief show of the matching parenthesis.
+
+(defun go-matching-paren ()
+    "Move cursor to the matching parenthesis."
+      (interactive)
+        (cond ((looking-at "[[({]") (forward-sexp 1) (backward-char 1))
+              ((looking-at "[])}]") (forward-char 1) (backward-sexp 1))
+                      (t (ding) (message "Unbalanced parenthesis"))))
+
+(defun show-matching-paren ()
+    "Move cursor momentarily to the matching parenthesis."
+      (interactive)
+        (save-excursion
+              (cond ((looking-at "[[({]") (forward-sexp 1) (backward-char 1) (sit-for 1))
+                      ((looking-at "[])}]") (forward-char 1) (backward-sexp 1) (sit-for 1))
+                        (t (ding) (message "Unbalanced parenthesis")))))
+
+(define-key global-map "\C-cpg" 'go-matching-paren)
+(define-key global-map "\C-cps" 'show-matching-paren)
+
+(define-key global-map [(C tab)] 'other-window)
+
+(set-scroll-bar-mode 'right)
+
+(setq completion-ignore-case t)
+
+(setq minibuffer-max-depth nil)
+
+(setq adaptive-fill-mode 1)
+
+
+
+; ------------ what version of emacs? -----------------
+; true if we're under NT
+(setq version-os-nt     (equal (getenv "OS") "Windows_NT"))
+
+; true if we're under XEmacs (www.xemacs.org)
+(setq version-xemacs    (string-match "XEmacs\\|Lucid" emacs-version))
+
+; true if we're under regular emacs
+(setq version-emacs     (not version-xemacs))
+
+; true if we're running under anything other than a text terminal
+(setq version-not-term  (not (not window-system)))
+
+; true under regular emacs and X windows
+(setq version-emacs-x   (and (not version-xemacs) (equal window-system 'x)))
+
+
+
+
+; ---------------- portable mark functions ---------------
+(defun is-mark-active ()
+    "True if the selection is displayed."
+      (cond
+           (version-emacs
+                  mark-active)           ; (mark) causes error if inactive under regular emacs
+               (version-xemacs
+                      (not (not (mark))))    ; but nil with xemacs, and mark-active doesn't exist
+                   (t t)
+                     ))
+
+(defun turn-off-mark ()
+    "Turn off the mark selection."
+      (cond
+           (version-emacs
+                  (setq mark-active nil))
+               (version-xemacs
+                      (zmacs-deactivate-region))
+                   (t t)
+                     ))
+
+(defun turn-on-mark ()
+    "Turn on the mark selection, with mark equal to cursor."
+      (cond
+           (version-emacs
+                  (set-mark (point)))      ; push-mark doesn't work for this!!!
+               (version-xemacs
+                      (push-mark (point))
+                            (zmacs-activate-region))
+                   (t t)
+                     ))
+
+(defun keep-region-selected ()
+    "Allow the selected region to remain selected after this command."
+      (cond
+           (version-emacs   t)
+               (version-xemacs  (setq zmacs-region-stays t))
+                   (t t)
+                     ))
+
+; ----------------- shift-move to select text --------------------------
+; passing a cursor-movement fn returns a fn that will turn on the region
+; highlighting if it is off, and then exec the cursor-movement
+;(defmacro make-extend-region-fn (name func)
+;  "Define a function called 'name' which behaves like 'func'
+;  except it extends the selected region."
+;  `(defun ,name ()
+;      ,(concat "Like " (prin1-to-string func) ", but extends the region.")
+;      (interactive)
+;      (princ "trying to extend")
+;      (if (not (is-mark-active))
+;        (turn-on-mark))
+;      ,func
+;
+;   ))
+
+
+
+
+(defun make-extend-region-fn (func)
+  ;      (interactive)
+  ;      (princ "trying to extend")
+        (if (not (is-mark-active))
+                      (turn-on-mark)
+                  )
+              (funcall func)
+                 )
+
+; this was on the line after ,func
+;      ,(if version-xemacs               ; this 'if' is tested at macro-expand time
+;         '(setq zmacs-region-stays t)     ; xemacs: make the region stay selected
+;         t)                               ; emacs: no need to do anything special
+
+;(princ-buffer
+;  (macroexpand '(make-extend-region-fn "move-select-left" (left-backward-char))))
+
+(defun move-select-left ()
+    (interactive)
+      (make-extend-region-fn 'backward-char)
+        )
+(defun move-select-right ()
+    (interactive)
+      (make-extend-region-fn 'forward-char)
+        )
+(defun move-select-up ()
+    (interactive)
+      (make-extend-region-fn (previous-line 1))
+        )
+(defun move-select-down ()
+    (interactive)
+      (make-extend-region-fn (next-line 1))
+        )
+(defun move-select-home ()
+    (interactive)
+      (make-extend-region-fn 'beginning-of-line)
+        )
+(defun move-select-end ()
+    (interactive)
+      (make-extend-region-fn 'end-of-line)
+        )
+(defun move-select-prior ()
+    (interactive)
+      (make-extend-region-fn 'prior)
+        )
+(defun move-select-next ()
+    (interactive)
+      (make-extend-region-fn (next))
+        )
+(defun move-select-top ()
+    (interactive)
+      (make-extend-region-fn (beginning-of-buffer))
+        )
+(defun move-select-bottom ()
+    (interactive)
+      (make-extend-region-fn (end-of-buffer))
+        )
+
+(global-set-key [(shift left)]            'move-select-left)
+(global-set-key [(shift right)]           'move-select-right)
+(global-set-key [(shift up)]              'move-select-up)
+(global-set-key [(shift down)]            'move-select-down)
+(global-set-key [(shift home)]            'move-select-home)
+(global-set-key [(shift end)]             'move-select-end)
+(global-set-key [(shift prior)]           'move-select-prior)
+(global-set-key [(shift next)]            'move-select-next)
+(global-set-key [(shift control prior)]   'move-select-top)
+(global-set-key [(shift control next)]    'move-select-bottom)
+;(global-set-key [(shift control left)]    'move-select-left-word)
+;(global-set-key [(shift control right)]   'move-select-right-word)
+
+;;; Use pending delete
+; this makes it
+(pending-delete-mode)
+
+
+;; Set title bar to file name
+(setq frame-title-format "%b %+%+ %f")
+
+;; set filename search (and buffer switching ot be case insensitive)
+(setq read-file-name-completion-ignore-case 1)
+(setq read-buffer-completion-ignore-case 1)
+
+;; Set up the keyboard so the delete key on both the regular keyboard
+;; and the keypad delete the character under the cursor and to the right
+;; under X, instead of the default, backspace behavior.
+(global-set-key [delete] 'delete-char)
+(global-set-key [kp-delete] 'delete-char)
+
+(global-set-key [C-backspace]      'backward-kill-word)
+(global-set-key [C-delete]         'kill-word)
+;(define-key global-map [M-backspace] 'backward-kill-word)
+(global-set-key [M-backspace]      'backward-kill-word)
+;(define-key global-map [meta DEL] 'kill-word)
+(global-set-key [M-delete]         'kill-word)
+;(define-key tcl-mode-map [(meta backspace)] 'backward-kill-word)
+
+(global-set-key [M-g]              'goto-line)
+(global-set-key "\M-g"              'goto-line)
+
+
+(global-set-key [(f7)] 'my-compile-command)
+(global-set-key [(f9)] 'toggle-truncate-lines) ;
+
+(global-set-key [(f1)] (lambda () (interactive) (manual-entry (current-word))))
+
+
+(setq column-number-mode 1)
+
+;(add-to-list 'load-path "~/configFiles/php-mode/")
+;(require 'php-mode)
+;(add-hook 'php-mode-hook
+;	  (function (lambda ()
+;		      ;; GNU style
+;		      (setq php-indent-level 4
+;			    php-continued-statement-offset 4
+;			    php-continued-brace-offset 0
+;			    php-brace-offset 0
+;			    php-brace-imaginary-offset 0
+;			    php-label-offset -2))))
+
+; This makes it so curly braces ( {} ) don't indent poorly in php mode...
+(setq c-default-style "bsd"
+	  c-basic-offset 4)
+
+(setq auto-mode-alist (cons '("\\.php$" . php-mode) auto-mode-alist))
+(setq auto-mode-alist (cons '("\\.module$" . php-mode) auto-mode-alist))
+(setq auto-mode-alist (cons '("\\.install$" . php-mode) auto-mode-alist))
+
+
+
+
+; Trial add Ruby stuff...
+(defun ruby-mode-hook0 ()
+  (define-key ruby-mode-map "\M-\C-i" 'complete-tag)
+)
+
+(add-hook 'inferior-ruby-mode-hook 'inferior-ruby-mode-hook0)
+
+
+
+
+; turns sound off and makes visible flash instead
+; http://www.emacswiki.org/emacs/AlarmBell
+(setq visible-bell 1)
+
+;The result of this little hack is that when the user types Command-V, the system sends Option-V, which does what Command-V used to do. And when TextExpander sends Command-V, it causes 'yank' to be invoked, which pastes in the expanded text. 
+;
+; http://hints.macworld.com/article.php?story=20091013214429696
+(setq ns-alternate-modifier 'alt)
+(define-key global-map [(alt ?v)] 'scroll-down)
+(define-key global-map [(meta ?v)] 'yank)
+
+
+;(setq mac-option-key-is-meta t)
+;(setq mac-option-key-is-meta nil)
+(setq mac-command-key-is-meta t)
+(setq mac-command-modifier 'meta)
+;(setq mac-option-modifier nil)
